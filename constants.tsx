@@ -17,6 +17,8 @@ export const COLORS = {
 };
 
 // Professional medical letterhead dummy image (Subtle blue waves/medical motif)
-export const DEFAULT_LETTERHEAD_URL = "https://chatgpt.com/backend-api/estuary/content?id=file_00000000f67072089884e2cb4dc5d766&ts=491798&p=fs&cid=1&sig=55f301ab633cc12177cdc9e2ff2e6ec60758f2f51703473146bcbb517d5b22b3&v=0";
+// For production, put your image file at `public/letterhead.png` and the
+// app will reference it as a same-origin asset. Example path: `/letterhead.png`.
+export const DEFAULT_LETTERHEAD_URL = "/public/letterhead.png";
 
 

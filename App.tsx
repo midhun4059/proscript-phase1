@@ -211,14 +211,93 @@ const App: React.FC = () => {
       margin: 0.5,
       filename,
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
     } as any;
 
+    // Create a clone of the print area but strip only remote cross-origin
+    // background images (these taint canvases). Keep same-origin or
+    // data: URLs so bundled letterheads remain in the PDF.
+    const createCleanClone = (source: HTMLElement) => {
+      const clone = source.cloneNode(true) as HTMLElement;
+      const all = clone.querySelectorAll<HTMLElement>("*");
+      const extractUrl = (bg: string) => {
+        const m = /url\((?:"|'|)?([^"')]+)(?:"|'|)?\)/.exec(bg || "");
+        return m ? m[1] : null;
+      };
+
+      all.forEach((node) => {
+        try {
+          const bg = node.style && node.style.backgroundImage;
+          if (!bg || bg === "none") return;
+          const url = extractUrl(bg);
+          if (!url) {
+            node.style.backgroundImage = "none";
+            return;
+          }
+
+          // Keep data: and relative or same-origin URLs; remove absolute
+          // remote URLs that point to other origins.
+          const isData = url.startsWith("data:");
+          const isRelative = url.startsWith("/") || !/^https?:\/\//i.test(url);
+          const isSameOrigin = (() => {
+            try {
+              const u = new URL(url, window.location.href);
+              return u.origin === window.location.origin;
+            } catch (e) {
+              return false;
+            }
+          })();
+
+          if (isData || isRelative || isSameOrigin) {
+            // keep image
+            return;
+          }
+
+          // remote cross-origin image -> remove to avoid tainting canvas
+          node.style.backgroundImage = "none";
+        } catch (e) {
+          node.style.backgroundImage = "none";
+        }
+      });
+
+      if (clone.style && clone.style.backgroundImage) {
+        const rootBg = clone.style.backgroundImage;
+        const url = extractUrl(rootBg || "");
+        if (url) {
+          const isData = url.startsWith("data:");
+          const isRelative = url.startsWith("/") || !/^https?:\/\//i.test(url);
+          let isSameOrigin = false;
+          try {
+            const u = new URL(url, window.location.href);
+            isSameOrigin = u.origin === window.location.origin;
+          } catch (e) {
+            isSameOrigin = false;
+          }
+          if (!(isData || isRelative || isSameOrigin)) {
+            clone.style.backgroundImage = "none";
+          }
+        } else {
+          clone.style.backgroundImage = "none";
+        }
+      }
+
+      // ensure clone doesn't affect layout
+      clone.style.position = "absolute";
+      clone.style.left = "-9999px";
+      clone.style.top = "0";
+      return clone;
+    };
+
+    const clone = createCleanClone(el);
+    document.body.appendChild(clone);
+
     try {
-      (window as any).html2pdf().set(opt).from(el).save();
+      await (window as any).html2pdf().set(opt).from(clone).save();
     } catch (err) {
       alert("PDF generation failed. You can use Print instead.");
+    } finally {
+      document.body.removeChild(clone);
     }
   };
 
