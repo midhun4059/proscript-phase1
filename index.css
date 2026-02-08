@@ -24,3 +24,30 @@ body {
     display: block !important;
   }
 }
+
+/* Print/table fixes for html2canvas/pdf rendering */
+.page {
+  box-sizing: border-box;
+}
+.page table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+}
+.page th,
+.page td {
+  border: 1px solid #d1d5db; /* Tailwind gray-300 */
+  padding: 0.5rem;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.page tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* ensure page content is visible to html2canvas */
+.print-only,
+.page {
+  -webkit-print-color-adjust: exact;
+}

@@ -44,6 +44,11 @@ const App: React.FC = () => {
     customSections: [],
     letterhead: DEFAULT_LETTERHEAD_URL, // Hardcoded background
     hideSystemHeader: false,
+    showDiagnosis: true,
+    showMedications: true,
+    showLabInvestigations: true,
+    showRadiologyInvestigations: true,
+    showAdvice: true,
   });
 
   const [sectionsPerPage, setSectionsPerPage] = React.useState<number>(5);
@@ -226,22 +231,42 @@ const App: React.FC = () => {
     // Remove print-only class so it's visible to html2canvas
     clone.classList.remove("print-only");
 
+    // Convert fixed-positioned elements (like letterhead) to absolute
+    // so they render correctly in the cloned PDF context
+    const fixedElements = clone.querySelectorAll<HTMLElement>(
+      'img[style*="position: fixed"]',
+    );
+    fixedElements.forEach((elem) => {
+      if (elem.style.position === "fixed") {
+        elem.style.position = "absolute";
+        // Adjust dimensions for the cloned context
+        elem.style.width = "100%";
+        elem.style.height = "100%";
+      }
+    });
+
     // Wrap clone in a container with proper positioning for html2canvas
     const wrapper = document.createElement("div");
     wrapper.style.position = "fixed";
     wrapper.style.left = "0";
     wrapper.style.top = "0";
-    wrapper.style.width = "100%";
     wrapper.style.backgroundColor = "white";
     wrapper.style.zIndex = "99999";
     wrapper.style.overflow = "auto";
 
+    // Measure source so we can set exact pixel width for the clone/wrapper
+    const rect = el.getBoundingClientRect();
+    const sourceWidth = Math.max(rect.width, 800);
+    wrapper.style.width = sourceWidth + "px";
+    // don't constrain height (content may span multiple pages)
+
     clone.style.position = "relative";
     clone.style.left = "0";
     clone.style.top = "0";
-    clone.style.width = "100%";
+    clone.style.width = sourceWidth + "px";
     clone.style.display = "block";
     clone.style.visibility = "visible";
+    clone.style.overflow = "visible";
 
     wrapper.appendChild(clone);
     document.body.appendChild(wrapper);
@@ -274,6 +299,13 @@ const App: React.FC = () => {
       await waitForImages();
       // Add small delay to ensure all elements are fully rendered
       await new Promise((resolve) => setTimeout(resolve, 500));
+      // Inform html2canvas of the correct capture width to avoid layout shifts
+      try {
+        (opt.html2canvas as any).width = sourceWidth;
+        (opt.html2canvas as any).scrollY = 0;
+      } catch (e) {
+        // ignore
+      }
       await (window as any).html2pdf().set(opt).from(clone).save();
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -370,60 +402,222 @@ const App: React.FC = () => {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DynamicListSection
-              title="Diagnosis"
-              items={prescription.diagnoses}
-              onAdd={(item) => addListEntry("diagnoses", item)}
-              onRemove={(idx) => removeListEntry("diagnoses", idx)}
-              placeholder="E.g., Hypertension, Type 2 Diabetes"
-            />
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6 flex flex-col justify-center items-center text-gray-400 italic text-sm text-center">
-              <svg
-                className="w-8 h-8 mb-2 opacity-20"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M9 4.804A7.993 7.993 0 003 12c0 4.418 3.582 8 8 8s8-3.582 8-8c0-4.418-3.582-8-8-8a7.993 7.993 0 00-6 2.804z" />
-              </svg>
-              Enter medical diagnoses or clinical findings here.
+            {prescription.showDiagnosis ? (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-gray-800">Diagnosis</h2>
+                  <button
+                    onClick={() =>
+                      setPrescription((prev) => ({
+                        ...prev,
+                        showDiagnosis: false,
+                      }))
+                    }
+                    className="text-xs font-bold text-red-500 uppercase hover:text-red-700"
+                  >
+                    Remove Section
+                  </button>
+                </div>
+                <DynamicListSection
+                  title=""
+                  items={prescription.diagnoses}
+                  onAdd={(item) => addListEntry("diagnoses", item)}
+                  onRemove={(idx) => removeListEntry("diagnoses", idx)}
+                  placeholder="E.g., Hypertension, Type 2 Diabetes"
+                />
+              </div>
+            ) : (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 mt-6 flex flex-col justify-center items-center text-gray-500 italic text-sm text-center">
+                <div className="mb-3">Diagnosis section removed.</div>
+                <button
+                  onClick={() =>
+                    setPrescription((prev) => ({
+                      ...prev,
+                      showDiagnosis: true,
+                    }))
+                  }
+                  className="text-sm font-bold text-blue-600 hover:underline"
+                >
+                  Add Diagnosis Section
+                </button>
+              </div>
+            )}
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+              <div className="text-sm text-gray-500">&nbsp;</div>
             </div>
           </div>
 
-          <MedicationTable
-            items={prescription.medications}
-            onAdd={addMedication}
-            onUpdate={updateMedication}
-            onRemove={removeMedication}
-          />
+          {prescription.showMedications ? (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 className="text-lg font-bold text-gray-800">Medications</h2>
+                <button
+                  onClick={() =>
+                    setPrescription((prev) => ({
+                      ...prev,
+                      showMedications: false,
+                    }))
+                  }
+                  className="text-xs font-bold text-red-500 uppercase hover:text-red-700"
+                >
+                  Remove Section
+                </button>
+              </div>
+              <MedicationTable
+                items={prescription.medications}
+                onAdd={addMedication}
+                onUpdate={updateMedication}
+                onRemove={removeMedication}
+              />
+            </div>
+          ) : (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 mt-6 flex flex-col justify-center items-center text-gray-500 italic text-sm text-center">
+              <div className="mb-3">Medications section removed.</div>
+              <button
+                onClick={() =>
+                  setPrescription((prev) => ({
+                    ...prev,
+                    showMedications: true,
+                  }))
+                }
+                className="text-sm font-bold text-blue-600 hover:underline"
+              >
+                Add Medications Section
+              </button>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DynamicListSection
-              title="Lab Investigations"
-              items={prescription.labInvestigations}
-              onAdd={(item) => addListEntry("labInvestigations", item)}
-              onRemove={(idx) => removeListEntry("labInvestigations", idx)}
-              isRed={true}
-              placeholder="E.g., TSH, CBC, HBA1C"
-            />
-            <DynamicListSection
-              title="Radiology Investigations"
-              items={prescription.radiologyInvestigations}
-              onAdd={(item) => addListEntry("radiologyInvestigations", item)}
-              onRemove={(idx) =>
-                removeListEntry("radiologyInvestigations", idx)
-              }
-              isRed={true}
-              placeholder="E.g., Chest X-Ray, USG Abdomen"
-            />
+            {prescription.showLabInvestigations ? (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    Lab Investigations
+                  </h2>
+                  <button
+                    onClick={() =>
+                      setPrescription((prev) => ({
+                        ...prev,
+                        showLabInvestigations: false,
+                      }))
+                    }
+                    className="text-xs font-bold text-red-500 uppercase hover:text-red-700"
+                  >
+                    Remove Section
+                  </button>
+                </div>
+                <DynamicListSection
+                  title=""
+                  items={prescription.labInvestigations}
+                  onAdd={(item) => addListEntry("labInvestigations", item)}
+                  onRemove={(idx) => removeListEntry("labInvestigations", idx)}
+                  isRed={true}
+                  placeholder="E.g., TSH, CBC, HBA1C"
+                />
+              </div>
+            ) : (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 mt-6 flex flex-col justify-center items-center text-gray-500 italic text-sm text-center">
+                <div className="mb-3">Lab Investigations removed.</div>
+                <button
+                  onClick={() =>
+                    setPrescription((prev) => ({
+                      ...prev,
+                      showLabInvestigations: true,
+                    }))
+                  }
+                  className="text-sm font-bold text-blue-600 hover:underline"
+                >
+                  Add Lab Investigations
+                </button>
+              </div>
+            )}
+
+            {prescription.showRadiologyInvestigations ? (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+                <div className="flex justify-between items-center mb-4 border-b pb-2">
+                  <h2 className="text-lg font-bold text-gray-800">
+                    Radiology Investigations
+                  </h2>
+                  <button
+                    onClick={() =>
+                      setPrescription((prev) => ({
+                        ...prev,
+                        showRadiologyInvestigations: false,
+                      }))
+                    }
+                    className="text-xs font-bold text-red-500 uppercase hover:text-red-700"
+                  >
+                    Remove Section
+                  </button>
+                </div>
+                <DynamicListSection
+                  title=""
+                  items={prescription.radiologyInvestigations}
+                  onAdd={(item) =>
+                    addListEntry("radiologyInvestigations", item)
+                  }
+                  onRemove={(idx) =>
+                    removeListEntry("radiologyInvestigations", idx)
+                  }
+                  isRed={true}
+                  placeholder="E.g., Chest X-Ray, USG Abdomen"
+                />
+              </div>
+            ) : (
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 mt-6 flex flex-col justify-center items-center text-gray-500 italic text-sm text-center">
+                <div className="mb-3">Radiology Investigations removed.</div>
+                <button
+                  onClick={() =>
+                    setPrescription((prev) => ({
+                      ...prev,
+                      showRadiologyInvestigations: true,
+                    }))
+                  }
+                  className="text-sm font-bold text-blue-600 hover:underline"
+                >
+                  Add Radiology Investigations
+                </button>
+              </div>
+            )}
           </div>
 
-          <DynamicListSection
-            title="General Advice"
-            items={prescription.advice}
-            onAdd={(item) => addListEntry("advice", item)}
-            onRemove={(idx) => removeListEntry("advice", idx)}
-            placeholder="E.g., Avoid fatty foods, Morning walk 30 mins"
-          />
+          {prescription.showAdvice ? (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+              <div className="flex justify-between items-center mb-4 border-b pb-2">
+                <h2 className="text-lg font-bold text-gray-800">
+                  General Advice
+                </h2>
+                <button
+                  onClick={() =>
+                    setPrescription((prev) => ({ ...prev, showAdvice: false }))
+                  }
+                  className="text-xs font-bold text-red-500 uppercase hover:text-red-700"
+                >
+                  Remove Section
+                </button>
+              </div>
+              <DynamicListSection
+                title=""
+                items={prescription.advice}
+                onAdd={(item) => addListEntry("advice", item)}
+                onRemove={(idx) => removeListEntry("advice", idx)}
+                placeholder="E.g., Avoid fatty foods, Morning walk 30 mins"
+              />
+            </div>
+          ) : (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 mt-6 flex flex-col justify-center items-center text-gray-500 italic text-sm text-center">
+              <div className="mb-3">Advice section removed.</div>
+              <button
+                onClick={() =>
+                  setPrescription((prev) => ({ ...prev, showAdvice: true }))
+                }
+                className="text-sm font-bold text-blue-600 hover:underline"
+              >
+                Add Advice Section
+              </button>
+            </div>
+          )}
 
           {/* Render Custom Sections */}
           {prescription.customSections.map((section) => (

@@ -44,8 +44,8 @@ const DynamicListSection: React.FC<Props & { textColor?: string }> = ({
           {items.map((item, idx) => (
             <li
               key={idx}
-              className={`text-sm ${isRed ? "font-bold" : ""}`}
-              style={{ color: isRed ? undefined : textColor || undefined }}
+              className={`text-sm ${isRed ? "font-bold text-red-700" : "text-gray-800"}`}
+              style={{ color: isRed ? "#dc2626" : textColor || undefined }}
             >
               {item}
             </li>
@@ -83,9 +83,19 @@ const DynamicListSection: React.FC<Props & { textColor?: string }> = ({
           <div
             key={idx}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200 text-sm ${isRed ? "bg-red-50 border-red-100" : "bg-gray-50"}`}
-            style={{ color: isRed ? undefined : textColor || undefined }}
+            style={{
+              color: isRed ? "#dc2626" : textColor || undefined,
+              fontWeight: isRed ? 700 : undefined,
+            }}
           >
-            <span style={{ color: textColor || undefined }}>{item}</span>
+            <span
+              style={{
+                color: isRed ? "#dc2626" : textColor || undefined,
+                fontWeight: isRed ? 700 : undefined,
+              }}
+            >
+              {item}
+            </span>
             <button
               onClick={() => onRemove(idx)}
               className="text-gray-400 hover:text-red-500 transition-colors"

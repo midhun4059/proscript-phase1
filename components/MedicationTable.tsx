@@ -14,7 +14,7 @@ const MedicationTable: React.FC<Props> = ({ items, onAdd, onUpdate, onRemove, is
   if (isPrint) {
     return (
       <div className="mb-6">
-        <h3 className="text-lg font-bold text-blue-900 border-b pb-1 mb-3">R<sub>x</sub> Medications</h3>
+        
         <table className="w-full text-sm border-collapse border border-gray-300">
           <thead>
             <tr className="bg-gray-100 text-left">
@@ -46,7 +46,7 @@ const MedicationTable: React.FC<Props> = ({ items, onAdd, onUpdate, onRemove, is
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
       <div className="flex justify-between items-center border-b pb-2 mb-4">
-        <h2 className="text-lg font-bold text-gray-800">Medications (Rx)</h2>
+        <h2 className="text-lg font-bold text-gray-800">Medications</h2>
         <button
           onClick={onAdd}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 transition-colors"

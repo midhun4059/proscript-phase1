@@ -39,4 +39,10 @@ export interface PrescriptionData {
   customSections: CustomSection[];
   letterhead?: string;
   hideSystemHeader: boolean;
+  // Flags to show/hide default sections
+  showDiagnosis?: boolean;
+  showMedications?: boolean;
+  showLabInvestigations?: boolean;
+  showRadiologyInvestigations?: boolean;
+  showAdvice?: boolean;
 }
