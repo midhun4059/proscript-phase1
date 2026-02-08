@@ -133,7 +133,11 @@ const PrescriptionPrint: React.FC<Props> = ({ data, sectionsPerPage = 5 }) => {
                     </h3>
                     <ul className="list-disc list-inside text-sm space-y-1">
                       {(sec.payload || []).map((it: string, i: number) => (
-                        <li key={i} className="text-gray-800">
+                        <li
+                          key={i}
+                          className="font-bold text-red-700"
+                          style={{ color: "#dc2626" }}
+                        >
                           {it}
                         </li>
                       ))}
@@ -161,15 +165,16 @@ const PrescriptionPrint: React.FC<Props> = ({ data, sectionsPerPage = 5 }) => {
                     <h3 className="text-md font-bold text-blue-900 border-b pb-0.5 mb-2">
                       {sec.title}
                     </h3>
-                    <ul
-                      className="list-disc list-inside text-sm space-y-1"
-                      style={{
-                        color: (sec.payload && sec.payload.color) || undefined,
-                      }}
-                    >
+                    <ul className="list-disc list-inside text-sm space-y-1">
                       {((sec.payload && sec.payload.items) || []).map(
                         (it: string, i: number) => (
-                          <li key={i}>{it}</li>
+                          <li
+                            key={i}
+                            className="font-bold text-red-700"
+                            style={{ color: "#dc2626" }}
+                          >
+                            {it}
+                          </li>
                         ),
                       )}
                     </ul>
