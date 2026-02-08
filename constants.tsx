@@ -19,6 +19,6 @@ export const COLORS = {
 // Professional medical letterhead dummy image (Subtle blue waves/medical motif)
 // For production, put your image file at `public/letterhead.png` and the
 // app will reference it as a same-origin asset. Example path: `/letterhead.png`.
-export const DEFAULT_LETTERHEAD_URL = "/public/letterhead.png";
+export const DEFAULT_LETTERHEAD_URL = "/letterhead.png";
 
 
