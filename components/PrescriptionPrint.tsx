@@ -74,15 +74,21 @@ const PrescriptionPrint: React.FC<Props> = ({ data, sectionsPerPage = 5 }) => {
 
   return (
     <div id="prescription-root" className="print-only relative">
-      {/* Background Letterhead - Repeated on every page using fixed position */}
+      {/* Background Letterhead - positioned absolute so it renders in cloned PDFs */}
       {data.letterhead && (
-        <div
-          className="fixed inset-0 z-[-1]"
+        <img
+          src={data.letterhead}
+          alt="letterhead"
           style={{
-            backgroundImage: `url(${data.letterhead})`,
-            backgroundSize: "100% 100%",
-            backgroundRepeat: "no-repeat",
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            zIndex: -1,
             opacity: 1,
+            pointerEvents: "none",
           }}
         />
       )}

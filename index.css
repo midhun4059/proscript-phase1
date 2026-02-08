@@ -1,0 +1,26 @@
+/* Minimal stylesheet to avoid 404 and provide base styles */
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure print-only class is hidden on screen by default (kept for app)
+   and allow html2canvas to render visible elements for PDF generation. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}

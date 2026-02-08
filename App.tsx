@@ -211,93 +211,75 @@ const App: React.FC = () => {
       margin: 0.5,
       filename,
       image: { type: "jpeg", quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: false,
+      },
       jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
     } as any;
 
-    // Create a clone of the print area but strip only remote cross-origin
-    // background images (these taint canvases). Keep same-origin or
-    // data: URLs so bundled letterheads remain in the PDF.
-    const createCleanClone = (source: HTMLElement) => {
-      const clone = source.cloneNode(true) as HTMLElement;
-      const all = clone.querySelectorAll<HTMLElement>("*");
-      const extractUrl = (bg: string) => {
-        const m = /url\((?:"|'|)?([^"')]+)(?:"|'|)?\)/.exec(bg || "");
-        return m ? m[1] : null;
-      };
+    // Clone the print area and prepare for rendering
+    const clone = el.cloneNode(true) as HTMLElement;
 
-      all.forEach((node) => {
-        try {
-          const bg = node.style && node.style.backgroundImage;
-          if (!bg || bg === "none") return;
-          const url = extractUrl(bg);
-          if (!url) {
-            node.style.backgroundImage = "none";
-            return;
-          }
+    // Remove print-only class so it's visible to html2canvas
+    clone.classList.remove("print-only");
 
-          // Keep data: and relative or same-origin URLs; remove absolute
-          // remote URLs that point to other origins.
-          const isData = url.startsWith("data:");
-          const isRelative = url.startsWith("/") || !/^https?:\/\//i.test(url);
-          const isSameOrigin = (() => {
-            try {
-              const u = new URL(url, window.location.href);
-              return u.origin === window.location.origin;
-            } catch (e) {
-              return false;
-            }
-          })();
+    // Wrap clone in a container with proper positioning for html2canvas
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "fixed";
+    wrapper.style.left = "0";
+    wrapper.style.top = "0";
+    wrapper.style.width = "100%";
+    wrapper.style.backgroundColor = "white";
+    wrapper.style.zIndex = "99999";
+    wrapper.style.overflow = "auto";
 
-          if (isData || isRelative || isSameOrigin) {
-            // keep image
-            return;
-          }
+    clone.style.position = "relative";
+    clone.style.left = "0";
+    clone.style.top = "0";
+    clone.style.width = "100%";
+    clone.style.display = "block";
+    clone.style.visibility = "visible";
 
-          // remote cross-origin image -> remove to avoid tainting canvas
-          node.style.backgroundImage = "none";
-        } catch (e) {
-          node.style.backgroundImage = "none";
-        }
-      });
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
 
-      if (clone.style && clone.style.backgroundImage) {
-        const rootBg = clone.style.backgroundImage;
-        const url = extractUrl(rootBg || "");
-        if (url) {
-          const isData = url.startsWith("data:");
-          const isRelative = url.startsWith("/") || !/^https?:\/\//i.test(url);
-          let isSameOrigin = false;
-          try {
-            const u = new URL(url, window.location.href);
-            isSameOrigin = u.origin === window.location.origin;
-          } catch (e) {
-            isSameOrigin = false;
-          }
-          if (!(isData || isRelative || isSameOrigin)) {
-            clone.style.backgroundImage = "none";
-          }
-        } else {
-          clone.style.backgroundImage = "none";
-        }
-      }
-
-      // ensure clone doesn't affect layout
-      clone.style.position = "absolute";
-      clone.style.left = "-9999px";
-      clone.style.top = "0";
-      return clone;
+    // Wait for letterhead image to load
+    const waitForImages = () => {
+      const imgs = Array.from(clone.querySelectorAll<HTMLImageElement>("img"));
+      return Promise.all(
+        imgs.map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (!img.src) return resolve();
+              if (img.complete && img.naturalHeight > 0) return resolve();
+              const checkImage = () => {
+                if (img.complete && img.naturalHeight > 0) {
+                  resolve();
+                } else {
+                  setTimeout(checkImage, 100);
+                }
+              };
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+              checkImage();
+            }),
+        ),
+      );
     };
 
-    const clone = createCleanClone(el);
-    document.body.appendChild(clone);
-
     try {
+      await waitForImages();
+      // Add small delay to ensure all elements are fully rendered
+      await new Promise((resolve) => setTimeout(resolve, 500));
       await (window as any).html2pdf().set(opt).from(clone).save();
     } catch (err) {
+      console.error("PDF generation error:", err);
       alert("PDF generation failed. You can use Print instead.");
     } finally {
-      document.body.removeChild(clone);
+      document.body.removeChild(wrapper);
     }
   };
 
